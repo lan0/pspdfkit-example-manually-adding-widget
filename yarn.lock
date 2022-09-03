@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-pspdfkit@~2022.2.3:
-  version "2022.2.3"
-  resolved "https://registry.yarnpkg.com/pspdfkit/-/pspdfkit-2022.2.3.tgz#3e42ccb6c3d43f41664a72841243482cceb6770e"
-  integrity sha512-RjiGHsSmy4atTB1wDkpl6uT6UoMATFZgbs/Ri+aU20Er3JtyxwAwO+4brs7gUAEbOt4RAMs6ql5B7P8MpBtKfw==
+pspdfkit@~2022.3.2:
+  version "2022.3.2"
+  resolved "https://registry.yarnpkg.com/pspdfkit/-/pspdfkit-2022.3.2.tgz#1d02dd6e340f21635b13770b304070d7eecd9817"
+  integrity sha512-RNTYHNhaoTIVtC1lNe1HOtP2jc5vb8WeCHWt6gWIYDbssUVRj5GIvsfqrz4k3TU2WSOSmN4IQhhsJh/xj2xPoQ==

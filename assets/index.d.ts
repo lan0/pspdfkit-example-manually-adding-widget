@@ -5,6 +5,31 @@ declare const SignatureSaveMode: {
 };
 declare type ISignatureSaveMode = typeof SignatureSaveMode[keyof typeof SignatureSaveMode];
 
+declare type IFunction<T = void> = (...args: Array<any>) => T;
+declare type IObject = Record<string, any>;
+declare type Without<T, U> = {
+    [P in Exclude<keyof T, keyof U>]?: never;
+};
+declare type XOR<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
+
+declare type ToolItemType = 'custom';
+declare type ToolItem = {
+    type: ToolItemType;
+    node?: Node;
+    id?: string;
+    title?: string;
+    className?: string;
+    icon?: string;
+    onPress?: IFunction;
+    selected?: boolean;
+    disabled?: boolean;
+};
+
+declare type BuiltInDocumentEditorToolbarItem = 'add' | 'remove' | 'duplicate' | 'rotate-left' | 'rotate-right' | 'move' | 'move-left' | 'move-right' | 'import-document' | 'spacer' | 'undo' | 'redo' | 'select-all' | 'select-none';
+declare type DocumentEditorToolbarItem = Omit<ToolItem, 'type'> & {
+    type: BuiltInDocumentEditorToolbarItem | 'custom';
+};
+
 declare type BuiltInDocumentEditorFooterItem = 'cancel' | 'spacer' | 'save-as' | 'save' | 'selected-pages' | 'loading-indicator';
 declare type DocumentEditorFooterItem = {
     type: BuiltInDocumentEditorFooterItem | 'custom';
@@ -4750,6 +4775,7 @@ declare class Color extends Color_base {
     static LIGHT_GREEN: Color;
     static LIGHT_YELLOW: Color;
     static BLUE: Color;
+    static fromHex: (hexColor: string) => Color;
     lighter(percent: number): Color;
     darker(percent: number): Color;
     equals(color: Color | {
@@ -4773,13 +4799,6 @@ declare type ColorPreset = {
         description?: string;
     };
 };
-
-declare type IFunction<T = void> = (...args: Array<any>) => T;
-declare type IObject = Record<string, any>;
-declare type Without<T, U> = {
-    [P in Exclude<keyof T, keyof U>]?: never;
-};
-declare type XOR<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
 
 declare const TransformationMatrix_base: Record$1.Factory<{
     a: number;
@@ -4845,14 +4864,16 @@ declare class DrawingPoint extends Point {
     constructor(options?: IDrawingPoint);
 }
 
-declare const Size_base: Record$1.Factory<{
+interface ISize {
     width: number;
     height: number;
-}>;
+}
+declare const Size_base: Record$1.Factory<ISize>;
 declare class Size extends Size_base {
     scale(factor: number): Size;
     ceil(): Size;
     floor(): Size;
+    swapDimensions(): Size;
     apply(matrix: TransformationMatrix): Size;
 }
 
@@ -4894,6 +4915,8 @@ declare class Rect extends Rect_base {
     apply(matrix: TransformationMatrix): Rect;
 }
 
+declare type RectJSON = [number, number, number, number];
+
 interface IInset {
     left: number;
     top: number;
@@ -4909,9 +4932,13 @@ declare class Inset extends Inset_base {
 }
 declare type InsetJSON = [left: number, top: number, right: number, bottom: number];
 
-declare const Action_base: Record$1.Factory<any>;
+declare type ActionCtorProps = {
+    subActions?: List<Action> | null;
+};
+declare const Action_base: Record$1.Factory<ActionCtorProps>;
 declare abstract class Action extends Action_base {
-    constructor(...args: Array<any>);
+    subActions?: List<Action> | null | undefined;
+    constructor(args?: ActionCtorProps);
 }
 
 declare const BlendMode: {
@@ -5166,34 +5193,37 @@ declare class PolylineAnnotation extends ShapeAnnotation {
     constructor(options?: IPolyLineAnnotation);
 }
 
+interface IGoToAction extends ActionCtorProps {
+    pageIndex?: number;
+}
 declare class GoToAction extends Action {
     pageIndex: number;
     static defaultValues: IObject;
-    constructor(args?: {
-        pageIndex?: number;
-    });
+    constructor(args?: IGoToAction);
 }
 
+interface IGoToEmbeddedAction extends ActionCtorProps {
+    newWindow?: boolean;
+    relativePath?: string;
+    targetType?: 'parent' | 'child';
+}
 declare class GoToEmbeddedAction extends Action {
     newWindow: boolean;
     relativePath: string;
     targetType: 'parent' | 'child';
     static defaultValues: IObject;
-    constructor(args?: {
-        newWindow?: boolean;
-        relativePath?: string;
-        targetType?: 'parent' | 'child';
-    });
+    constructor(args?: IGoToEmbeddedAction);
 }
 
+interface IGoToRemoteAction extends ActionCtorProps {
+    relativePath?: string;
+    namedDestination?: string;
+}
 declare class GoToRemoteAction extends Action {
     relativePath: string;
     namedDestination: string;
     static defaultValues: IObject;
-    constructor(args?: {
-        relativePath?: string;
-        namedDestination?: string;
-    });
+    constructor(args?: IGoToRemoteAction);
 }
 
 declare type AnnotationReference = {
@@ -5201,50 +5231,72 @@ declare type AnnotationReference = {
 } | {
     pdfObjectId: number;
 };
+interface IHideAction extends ActionCtorProps {
+    hide?: boolean;
+    annotationReferences?: List<AnnotationReference>;
+}
 declare class HideAction extends Action {
     hide: boolean;
     annotationReferences: List<AnnotationReference>;
     static defaultValues: IObject;
-    constructor(args?: {
-        hide?: boolean;
-        annotationReferences?: List<AnnotationReference>;
-    });
+    constructor(args?: IHideAction);
 }
 
+interface IJavaScriptAction extends ActionCtorProps {
+    script?: string;
+}
 declare class JavaScriptAction extends Action {
     script: string;
     static defaultValues: IObject;
-    constructor(args?: {
-        script?: string;
-    });
+    constructor(args?: IJavaScriptAction);
 }
 
+interface ILaunchAction extends ActionCtorProps {
+    filePath?: string;
+}
 declare class LaunchAction extends Action {
     filePath: string;
     static defaultValues: IObject;
-    constructor(args?: {
-        filePath?: string;
-    });
+    constructor(args?: ILaunchAction);
 }
 
+interface INamedAction extends ActionCtorProps {
+    action?: string;
+}
 declare class NamedAction extends Action {
     action: string;
     static defaultValues: IObject;
-    constructor(args?: {
-        action?: string;
-    });
+    constructor(args?: INamedAction);
 }
 
+interface IResetFormAction extends ActionCtorProps {
+    fields?: List<string> | null | undefined;
+    includeExclude?: boolean;
+}
 declare class ResetFormAction extends Action {
     fields: List<string> | null | undefined;
     includeExclude: boolean;
     static defaultValues: IObject;
-    constructor(args?: {
-        fields?: List<string>;
-        includeExclude?: boolean;
-    });
+    constructor(args?: IResetFormAction);
 }
 
+interface ISubmitFormAction extends ActionCtorProps {
+    uri?: string;
+    fields?: List<string>;
+    includeExclude?: boolean;
+    includeNoValueFields?: boolean;
+    exportFormat?: boolean;
+    getMethod?: boolean;
+    submitCoordinated?: boolean;
+    xfdf?: boolean;
+    includeAppendSaves?: boolean;
+    includeAnnotations?: boolean;
+    submitPDF?: boolean;
+    canonicalFormat?: boolean;
+    excludeNonUserAnnotations?: boolean;
+    excludeFKey?: boolean;
+    embedForm?: boolean;
+}
 declare class SubmitFormAction extends Action {
     uri: string;
     fields: List<string> | null | undefined;
@@ -5262,31 +5314,16 @@ declare class SubmitFormAction extends Action {
     excludeFKey: boolean;
     embedForm: boolean;
     static defaultValues: IObject;
-    constructor(args?: {
-        uri?: string;
-        fields?: List<string>;
-        includeExclude?: boolean;
-        includeNoValueFields?: boolean;
-        exportFormat?: boolean;
-        getMethod?: boolean;
-        submitCoordinated?: boolean;
-        xfdf?: boolean;
-        includeAppendSaves?: boolean;
-        includeAnnotations?: boolean;
-        submitPDF?: boolean;
-        canonicalFormat?: boolean;
-        excludeNonUserAnnotations?: boolean;
-        excludeFKey?: boolean;
-        embedForm?: boolean;
-    });
+    constructor(args?: ISubmitFormAction);
 }
 
+interface IURIAction extends ActionCtorProps {
+    uri?: string;
+}
 declare class URIAction extends Action {
     uri: string;
     static defaultValues: IObject;
-    constructor(args?: {
-        uri?: string;
-    });
+    constructor(args?: IURIAction);
 }
 
 interface ILinkAnnotation extends AnnotationCtorProps {
@@ -5521,19 +5558,6 @@ declare namespace PSPDFKitSaveError {
 declare type AnnotationPreset$1 = Record<string, any>;
 declare type AnnotationPresetID$1 = string;
 
-declare type ToolItemType = 'custom';
-declare type ToolItem = {
-    type: ToolItemType;
-    node?: Node;
-    id?: string;
-    title?: string;
-    className?: string;
-    icon?: string;
-    onPress?: IFunction;
-    selected?: boolean;
-    disabled?: boolean;
-};
-
 declare type AnnotationTooltipCallback = (arg0: Annotation) => Array<ToolItem>;
 
 declare function toJSON(bookmark: Bookmark): {
@@ -5653,6 +5677,8 @@ declare class FormFieldValue extends FormFieldValue_base {
     constructor(args?: IObject);
 }
 
+declare type Change = Annotation | Bookmark | FormField | FormFieldValue | Comment;
+
 declare type IsEditableAnnotationCallback = (annotation: Annotation) => boolean;
 
 declare type RenderPageCallback = (context: CanvasRenderingContext2D, pageIndex: number, pageSize: Size) => unknown;
@@ -5690,6 +5716,159 @@ interface ITextLine {
 declare const TextLine_base: Record$1.Factory<ITextLine>;
 declare class TextLine extends TextLine_base {
 }
+
+declare type SerializedJSON = {
+    skippedPdfObjectIds?: number[];
+    annotations?: Record<string, any>[];
+    formFields?: Record<string, any>[];
+    skippedPdfFormFieldIds?: number[];
+    formFieldValues?: Record<string, any>[];
+    attachments?: Record<string, {
+        binary: string;
+        contentType: string;
+    }>;
+    skippedPdfBookmarkIds?: string[];
+    bookmarks?: Record<string, any>[];
+};
+declare type InstantJSON = SerializedJSON & {
+    format: 'https://pspdfkit.com/instant-json/v1';
+    pdfId?: {
+        permanent: string;
+        changing: string;
+    };
+};
+
+declare type OutlineElementProps = {
+    children: List<OutlineElement>;
+    title: string;
+    color: Color | null;
+    isBold: boolean;
+    isItalic: boolean;
+    isExpanded: boolean;
+    action: Action | null;
+};
+declare const OutlineElement_base: Record$1.Factory<OutlineElementProps>;
+declare class OutlineElement extends OutlineElement_base {
+}
+
+declare type Rotation$1 = 0 | 90 | 180 | 270;
+declare type AddPageConfiguration = {
+    backgroundColor: Color;
+    pageWidth: number;
+    pageHeight: number;
+    rotateBy: Rotation$1;
+    insets?: Rect;
+};
+declare type OperationAttachment = string | File | Blob;
+declare type min = number;
+declare type max = number;
+declare type Range = [min, max];
+declare type ImportPageIndex = Array<number | Range>;
+declare type DocumentMetadata = {
+    title?: string;
+    author?: string;
+};
+declare type NonSerializableDocumentOperations = {
+    type: 'removePages';
+    pageIndexes: Array<number>;
+} | {
+    type: 'duplicatePages';
+    pageIndexes: Array<number>;
+} | {
+    type: 'movePages';
+    pageIndexes: Array<number>;
+    afterPageIndex: number;
+} | {
+    type: 'movePages';
+    pageIndexes: Array<number>;
+    beforePageIndex: number;
+} | {
+    type: 'rotatePages';
+    pageIndexes: Array<number>;
+    rotateBy: Rotation$1;
+} | {
+    type: 'keepPages';
+    pageIndexes: Array<number>;
+} | {
+    type: 'importDocument';
+    afterPageIndex: number;
+    treatImportedDocumentAsOnePage?: boolean;
+    document: OperationAttachment;
+    importedPageIndexes?: ImportPageIndex;
+} | {
+    type: 'importDocument';
+    beforePageIndex: number;
+    treatImportedDocumentAsOnePage?: boolean;
+    document: OperationAttachment;
+    importedPageIndexes?: ImportPageIndex;
+} | {
+    type: 'applyInstantJson';
+    instantJson: Record<string, any>;
+    dataFilePath: OperationAttachment;
+} | {
+    type: 'applyXfdf';
+    xfdf: string;
+    dataFilePath: OperationAttachment;
+} | {
+    type: 'flattenAnnotations';
+    pageIndexes?: Array<number>;
+    annotationIds?: string[];
+} | {
+    type: 'setPageLabel';
+    pageIndexes?: Array<number>;
+    pageLabel?: string;
+} | {
+    type: 'performOcr';
+    pageIndexes?: Array<number> | 'all';
+    language: string;
+} | {
+    type: 'applyRedactions';
+} | {
+    type: 'updateMetadata';
+    metadata: DocumentMetadata;
+};
+declare type DocumentOperation = (AddPageConfiguration & {
+    type: 'addPage';
+    afterPageIndex: number;
+}) | (AddPageConfiguration & {
+    type: 'addPage';
+    beforePageIndex: number;
+}) | {
+    type: 'cropPages';
+    pageIndexes?: Array<number>;
+    cropBox: Rect;
+} | NonSerializableDocumentOperations;
+
+declare const SearchPattern: {
+    readonly CREDIT_CARD_NUMBER: "credit_card_number";
+    readonly DATE: "date";
+    readonly TIME: "time";
+    readonly EMAIL_ADDRESS: "email_address";
+    readonly INTERNATIONAL_PHONE_NUMBER: "international_phone_number";
+    readonly IP_V4: "ipv4";
+    readonly IP_V6: "ipv6";
+    readonly MAC_ADDRESS: "mac_address";
+    readonly NORTH_AMERICAN_PHONE_NUMBER: "north_american_phone_number";
+    readonly SOCIAL_SECURITY_NUMBER: "social_security_number";
+    readonly URL: "url";
+    readonly US_ZIP_CODE: "us_zip_code";
+    readonly VIN: "vin";
+};
+declare type ISearchPattern = typeof SearchPattern[keyof typeof SearchPattern];
+
+declare const SearchType: {
+    readonly TEXT: "text";
+    readonly PRESET: "preset";
+    readonly REGEX: "regex";
+};
+declare type ISearchType = typeof SearchType[keyof typeof SearchType];
+
+declare type RawPdfBoxes = {
+    bleedBox: null | RectJSON;
+    cropBox: null | RectJSON;
+    mediaBox: null | RectJSON;
+    trimBox: null | RectJSON;
+};
 
 declare type FontCallback = (arg0: string) => Promise<Blob>;
 
@@ -5747,11 +5926,6 @@ declare const ElectronicSignatureCreationMode: {
 };
 declare type IElectronicSignatureCreationMode = typeof ElectronicSignatureCreationMode[keyof typeof ElectronicSignatureCreationMode];
 
-declare type BuiltInDocumentEditorToolbarItem = 'add' | 'remove' | 'duplicate' | 'rotate-left' | 'rotate-right' | 'move' | 'move-left' | 'move-right' | 'import-document' | 'spacer' | 'undo' | 'redo' | 'select-all' | 'select-none';
-declare type DocumentEditorToolbarItem = ToolItem & {
-    type: BuiltInDocumentEditorToolbarItem | 'custom';
-};
-
 declare type AnnotationsResizeEvent = {
     annotation: Annotation;
     isShiftPressed: boolean;
@@ -5787,6 +5961,14 @@ declare const InteractionMode: {
     readonly REDACT_TEXT_HIGHLIGHTER: "REDACT_TEXT_HIGHLIGHTER";
     readonly REDACT_SHAPE_RECTANGLE: "REDACT_SHAPE_RECTANGLE";
     readonly DOCUMENT_CROP: "DOCUMENT_CROP";
+    readonly BUTTON_WIDGET: "BUTTON_WIDGET";
+    readonly TEXT_WIDGET: "TEXT_WIDGET";
+    readonly RADIO_BUTTON_WIDGET: "RADIO_BUTTON_WIDGET";
+    readonly CHECKBOX_WIDGET: "CHECKBOX_WIDGET";
+    readonly COMBO_BOX_WIDGET: "COMBO_BOX_WIDGET";
+    readonly LIST_BOX_WIDGET: "LIST_BOX_WIDGET";
+    readonly SIGNATURE_WIDGET: "SIGNATURE_WIDGET";
+    readonly FORM_CREATOR: "FORM_CREATOR";
 };
 declare type IInteractionMode = typeof InteractionMode[keyof typeof InteractionMode];
 
@@ -5798,6 +5980,7 @@ declare class PageInfo {
     height: number;
     width: number;
     rotation: number;
+    rawPdfBoxes: RawPdfBoxes;
 }
 
 declare const ViewportPadding_base: Record$1.Factory<{
@@ -5807,7 +5990,7 @@ declare const ViewportPadding_base: Record$1.Factory<{
 declare class ViewportPadding extends ViewportPadding_base {
 }
 
-declare type Rotation$1 = 0 | 90 | 180 | 270;
+declare type Rotation = 0 | 90 | 180 | 270;
 interface IViewState {
     allowPrinting: boolean;
     allowExport: boolean;
@@ -5817,7 +6000,7 @@ interface IViewState {
     keepFirstSpreadAsSinglePage: boolean;
     layoutMode: ILayoutMode;
     pageSpacing: number;
-    pagesRotation: Rotation$1;
+    pagesRotation: Rotation;
     readOnly: boolean;
     scrollMode: IScrollMode;
     showAnnotations: boolean;
@@ -5871,9 +6054,9 @@ declare class StampAnnotation extends Annotation {
     constructor(options?: IStampAnnotation);
 }
 
-declare type DefaultToolbarItemType = 'pager' | 'layout-config' | 'pan' | 'zoom-out' | 'zoom-in' | 'zoom-mode' | 'marquee-zoom' | 'spacer' | 'text' | 'annotate' | 'responsive-group' | 'ink' | 'image' | 'line' | 'arrow' | 'rectangle' | 'ellipse' | 'polygon' | 'polyline' | 'note' | 'print' | 'search' | 'debug' | 'sidebar-thumbnails' | 'signature' | 'comment' | 'sidebar-document-outline' | 'sidebar-annotations' | 'sidebar-bookmarks' | 'highlighter' | 'text-highlighter' | 'ink-eraser' | 'stamp' | 'document-editor' | 'document-crop' | 'document-comparison' | 'export-pdf';
-declare type BuiltInToolbarItemType = DefaultToolbarItemType | 'layout-config' | 'marquee-zoom' | 'comment' | 'redact-text-highlighter' | 'redact-rectangle' | 'cloudy-rectangle' | 'dashed-rectangle' | 'cloudy-ellipse' | 'dashed-ellipse' | 'cloudy-polygon' | 'dashed-polygon';
-declare type ToolbarItemType = ToolItemType | BuiltInToolbarItemType;
+declare const allowedToolbarTypes: ("note" | "comment" | "text" | "search" | "ellipse" | "image" | "line" | "polygon" | "polyline" | "arrow" | "highlighter" | "undo" | "redo" | "signature" | "print" | "rectangle" | "ink" | "stamp" | "cloudy-rectangle" | "dashed-rectangle" | "cloudy-ellipse" | "dashed-ellipse" | "cloudy-polygon" | "dashed-polygon" | "text-highlighter" | "sidebar-thumbnails" | "sidebar-document-outline" | "sidebar-annotations" | "sidebar-bookmarks" | "pager" | "pan" | "zoom-out" | "zoom-in" | "zoom-mode" | "spacer" | "annotate" | "ink-eraser" | "document-editor" | "document-crop" | "export-pdf" | "debug" | "layout-config" | "marquee-zoom" | "custom" | "responsive-group" | "redact-text-highlighter" | "redact-rectangle" | "document-comparison" | "form-creator")[];
+
+declare type ToolbarItemType = ToolItemType | typeof allowedToolbarTypes[number];
 declare type ToolbarItem = Omit<ToolItem, 'type'> & {
     type: ToolbarItemType;
     mediaQueries?: string[];
@@ -5882,19 +6065,6 @@ declare type ToolbarItem = Omit<ToolItem, 'type'> & {
     preset?: AnnotationPresetID$1;
     onKeyPress?: (...args: Array<any>) => any;
 };
-
-declare type OutlineElementProps = {
-    children: List<OutlineElement>;
-    title: string;
-    color: Action | null;
-    isBold: boolean;
-    isItalic: boolean;
-    isExpanded: boolean;
-    action: Action | null;
-};
-declare const OutlineElement_base: Record$1.Factory<OutlineElementProps>;
-declare class OutlineElement extends OutlineElement_base {
-}
 
 interface ICallout {
     start: Point | null;
@@ -5954,115 +6124,6 @@ declare class TextAnnotation extends Annotation {
     constructor(options?: ITextAnnotation);
 }
 
-declare type SerializedJSON = {
-    skippedPdfObjectIds?: number[];
-    annotations?: Record<string, any>[];
-    formFields?: Record<string, any>[];
-    skippedPdfFormFieldIds?: number[];
-    formFieldValues?: Record<string, any>[];
-    attachments?: Record<string, {
-        binary: string;
-        contentType: string;
-    }>;
-    skippedPdfBookmarkIds?: string[];
-    bookmarks?: Record<string, any>[];
-};
-declare type InstantJSON = SerializedJSON & {
-    format: 'https://pspdfkit.com/instant-json/v1';
-    pdfId?: {
-        permanent: string;
-        changing: string;
-    };
-};
-
-declare type Rotation = 0 | 90 | 180 | 270;
-declare type AddPageConfiguration = {
-    backgroundColor: Color;
-    pageWidth: number;
-    pageHeight: number;
-    rotateBy: Rotation;
-    insets?: Rect;
-};
-declare type OperationAttachment = string | File | Blob;
-declare type min = number;
-declare type max = number;
-declare type Range = [min, max];
-declare type ImportPageIndex = Array<number | Range>;
-declare type DocumentMetadata = {
-    title?: string;
-    author?: string;
-};
-declare type NonSerializableDocumentOperations = {
-    type: 'removePages';
-    pageIndexes: Array<number>;
-} | {
-    type: 'duplicatePages';
-    pageIndexes: Array<number>;
-} | {
-    type: 'movePages';
-    pageIndexes: Array<number>;
-    afterPageIndex: number;
-} | {
-    type: 'movePages';
-    pageIndexes: Array<number>;
-    beforePageIndex: number;
-} | {
-    type: 'rotatePages';
-    pageIndexes: Array<number>;
-    rotateBy: Rotation;
-} | {
-    type: 'keepPages';
-    pageIndexes: Array<number>;
-} | {
-    type: 'importDocument';
-    afterPageIndex: number;
-    treatImportedDocumentAsOnePage?: boolean;
-    document: OperationAttachment;
-    importedPageIndexes?: ImportPageIndex;
-} | {
-    type: 'importDocument';
-    beforePageIndex: number;
-    treatImportedDocumentAsOnePage?: boolean;
-    document: OperationAttachment;
-    importedPageIndexes?: ImportPageIndex;
-} | {
-    type: 'applyInstantJson';
-    instantJson: Record<string, any>;
-    dataFilePath: OperationAttachment;
-} | {
-    type: 'applyXfdf';
-    xfdf: string;
-    dataFilePath: OperationAttachment;
-} | {
-    type: 'flattenAnnotations';
-    pageIndexes?: Array<number>;
-    annotationIds?: string[];
-} | {
-    type: 'setPageLabel';
-    pageIndexes?: Array<number>;
-    pageLabel?: string;
-} | {
-    type: 'performOcr';
-    pageIndexes?: Array<number> | 'all';
-    language: string;
-} | {
-    type: 'applyRedactions';
-} | {
-    type: 'updateMetadata';
-    metadata: DocumentMetadata;
-};
-declare type DocumentOperation = (AddPageConfiguration & {
-    type: 'addPage';
-    afterPageIndex: number;
-}) | (AddPageConfiguration & {
-    type: 'addPage';
-    beforePageIndex: number;
-}) | {
-    type: 'cropPages';
-    pageIndexes?: Array<number>;
-    cropBox: Rect;
-} | NonSerializableDocumentOperations;
-
 declare type TwoStepSignatureCallback = (arg0: {
     hash: string;
     fileContents: ArrayBuffer;
@@ -6085,32 +6146,6 @@ declare type RedactionAnnotationPreset = {
     outlineColor?: Color;
     creatorName?: string;
 };
-
-declare type Change = Annotation | Bookmark | FormField | FormFieldValue | Comment;
-
-declare const SearchType: {
-    readonly TEXT: "text";
-    readonly PRESET: "preset";
-    readonly REGEX: "regex";
-};
-declare type ISearchType = typeof SearchType[keyof typeof SearchType];
-
-declare const SearchPattern: {
-    readonly CREDIT_CARD_NUMBER: "credit_card_number";
-    readonly DATE: "date";
-    readonly TIME: "time";
-    readonly EMAIL_ADDRESS: "email_address";
-    readonly INTERNATIONAL_PHONE_NUMBER: "international_phone_number";
-    readonly IP_V4: "ipv4";
-    readonly IP_V6: "ipv6";
-    readonly MAC_ADDRESS: "mac_address";
-    readonly NORTH_AMERICAN_PHONE_NUMBER: "north_american_phone_number";
-    readonly SOCIAL_SECURITY_NUMBER: "social_security_number";
-    readonly URL: "url";
-    readonly US_ZIP_CODE: "us_zip_code";
-    readonly VIN: "vin";
-};
-declare type ISearchPattern = typeof SearchPattern[keyof typeof SearchPattern];
 
 declare type AnnotationPresetsUpdateEvent = {
     preventDefault: () => boolean;
@@ -6284,6 +6319,11 @@ interface EventMap {
     'textLine.press': (event: TextLinePressEvent) => void;
     'textSelection.change': (selection: TextSelection | null) => void;
     'history.change': (event: HistoryEvent<'undo' | 'redo'>) => void;
+    'history.willChange': (event: {
+        type: 'create' | 'update' | 'delete';
+        annotation: Annotation;
+        preventDefault: () => void;
+    }) => void;
     'history.clear': () => void;
     'history.redo': (event: HistoryEvent<'redo'>) => void;
     'history.undo': (event: HistoryEvent<'undo'>) => void;
@@ -6312,14 +6352,14 @@ declare type IAnnotationToolbarType = 'stroke-color' | 'fill-color' | 'backgroun
 declare type BuiltInAnnotationToolbarItem = {
     type: IAnnotationToolbarType;
 };
-declare type Shared = Omit<ToolItem, 'selected' | 'type' | 'icon'> & {
+declare type Shared = Omit<ToolItem, 'selected' | 'type'> & {
     onPress?: (nativeEvent: MouseEvent, id?: string) => void;
     iconClassName?: string;
     onIconPress?: (nativeEvent: MouseEvent, id?: string) => void;
 };
 declare type AnnotationToolbarItem = (Omit<Shared, 'node'> & {
     type: IAnnotationToolbarType;
-}) | (Shared & {
+}) | (Omit<Shared, 'icon'> & {
     id: string;
     type: 'custom';
     icon?: string | Node;
@@ -6330,6 +6370,11 @@ declare type AnnotationToolbarItemsCallback = (annotation: Annotation, options: 
     defaultAnnotationToolbarItems: BuiltInAnnotationToolbarItem[];
     hasDesktopLayout: boolean;
 }) => AnnotationToolbarItem[];
+
+declare type OnWidgetAnnotationCreationStartCallback = (annotation: WidgetAnnotation, formField: FormField) => {
+    annotation?: WidgetAnnotation;
+    formField?: FormField;
+};
 
 declare type ViewStateSetter = (currentState: ViewState) => ViewState;
 declare type ToolbarItemsSetter = (currentState: ToolbarItem[]) => ToolbarItem[];
@@ -6381,6 +6426,7 @@ declare class Instance {
     setCustomUIConfiguration: (customUIConfigurationOrConfigurationSetter: CustomUI | ((customUI: CustomUI | null) => CustomUI)) => void;
     getDocumentOutline: () => Promise<List<OutlineElement>>;
     setAnnotationCreatorName: (annotationCreatorName?: string | null) => void;
+    setOnWidgetAnnotationCreationStart: (callback: OnWidgetAnnotationCreationStartCallback) => void;
     contentWindow: Window;
     contentDocument: Document;
     readonly viewState: ViewState;
@@ -6477,6 +6523,22 @@ declare type DateTimeStringCallback = (args: {
     object: Annotation | Comment;
 }) => string;
 
+declare const InkEraserMode: {
+    readonly POINT: "POINT";
+    readonly STROKE: "STROKE";
+};
+declare type IInkEraserMode = typeof InkEraserMode[keyof typeof InkEraserMode];
+
+declare type BuiltInColorProperty = 'color' | 'stroke-color' | 'fill-color' | 'background-color' | 'font-color' | 'outline-color';
+declare type AnnotationToolbarColorPresetConfig = {
+    presets: ColorPreset[];
+    showColorPicker?: boolean;
+};
+declare type AnnotationToolbarColorPresetsCallback = (options: {
+    propertyName: BuiltInColorProperty;
+    defaultAnnotationToolbarColorPresets: ColorPreset[];
+}) => AnnotationToolbarColorPresetConfig | undefined;
+
 declare type TrustedCAsCallback = () => Promise<Array<ArrayBuffer | string>>;
 
 declare type ElectronicSignaturesConfiguration = {
@@ -6536,8 +6598,12 @@ declare type SharedConfiguration = {
     enableHistory?: boolean;
     onOpenURI?: OnOpenUriCallback;
     dateTimeString?: DateTimeStringCallback;
+    annotationToolbarColorPresets?: AnnotationToolbarColorPresetsCallback;
     annotationToolbarItems?: AnnotationToolbarItemsCallback;
     enableClipboardActions?: boolean;
+    renderPagePreview?: boolean;
+    unstable_inkEraserMode?: IInkEraserMode;
+    onWidgetAnnotationCreationStart?: OnWidgetAnnotationCreationStartCallback;
 };
 declare type Instant = {
     public: boolean;
@@ -6625,6 +6691,7 @@ declare type TextFormFieldJSON = BaseFormFieldJSON & {
 } & DoNotSpellCheckPropertyPair;
 declare type ButtonFormFieldJSON = BaseFormFieldJSON & {
     type: 'pspdfkit/form-field/button';
+    buttonLabel: string;
 };
 declare type SignatureFormFieldJSON = BaseFormFieldJSON & {
     type: 'pspdfkit/form-field/signature';
@@ -6678,6 +6745,8 @@ declare class FormField extends FormField_base {
 }
 
 declare class ButtonFormField extends FormField {
+    buttonLabel: string | null;
+    static defaultValues: IObject;
 }
 
 declare const FormOption_base: Record$1.Factory<{
@@ -6806,6 +6875,7 @@ interface IWidgetAnnotation extends AnnotationCtorProps {
     backgroundColor?: Color | null;
     fontSize?: FontSize | null;
     font?: string | null;
+    fontColor?: Color | null;
     isBold?: boolean | null;
     isItalic?: boolean | null;
     horizontalAlign?: 'left' | 'center' | 'right' | null;
@@ -6821,6 +6891,7 @@ declare class WidgetAnnotation extends Annotation {
     backgroundColor: null | Color;
     fontSize: null | FontSize;
     font: null | string;
+    fontColor: null | Color;
     isBold: boolean;
     isItalic: boolean;
     horizontalAlign: 'left' | 'center' | 'right' | null;
@@ -7043,6 +7114,18 @@ declare const PSPDFKit: {
         readonly REDACT_TEXT_HIGHLIGHTER: "REDACT_TEXT_HIGHLIGHTER";
         readonly REDACT_SHAPE_RECTANGLE: "REDACT_SHAPE_RECTANGLE";
         readonly DOCUMENT_CROP: "DOCUMENT_CROP";
+        readonly BUTTON_WIDGET: "BUTTON_WIDGET";
+        readonly TEXT_WIDGET: "TEXT_WIDGET";
+        readonly RADIO_BUTTON_WIDGET: "RADIO_BUTTON_WIDGET";
+        readonly CHECKBOX_WIDGET: "CHECKBOX_WIDGET";
+        readonly COMBO_BOX_WIDGET: "COMBO_BOX_WIDGET";
+        readonly LIST_BOX_WIDGET: "LIST_BOX_WIDGET";
+        readonly SIGNATURE_WIDGET: "SIGNATURE_WIDGET";
+        readonly FORM_CREATOR: "FORM_CREATOR";
+    };
+    unstable_InkEraserMode: {
+        readonly POINT: "POINT";
+        readonly STROKE: "STROKE";
     };
     SidebarMode: {
         readonly ANNOTATIONS: "ANNOTATIONS";
@@ -7238,40 +7321,10 @@ declare const PSPDFKit: {
         type: BuiltInDocumentEditorFooterItem;
     }[];
     readonly defaultDocumentEditorToolbarItems: {
-        type: string;
+        type: BuiltInDocumentEditorToolbarItem;
     }[];
     readonly defaultAnnotationPresets: {
-        [key: string]: {
-            lineCaps: {
-                end: string;
-            };
-        } | {
-            cloudyBorderIntensity: number;
-        } | {
-            strokeDashArray: number[];
-        } | {
-            cloudyBorderIntensity: number;
-        } | {
-            strokeDashArray: number[];
-        } | {
-            cloudyBorderIntensity: number;
-        } | {
-            strokeDashArray: number[];
-        } | {
-            strokeColor: Color;
-            lineWidth: number;
-            blendMode: string;
-            opacity: number;
-        } | {
-            color: Color;
-            blendMode: string;
-            opacity: number;
-        } | {
-            isSignature: boolean;
-        } | {
-            isSignature: boolean;
-            strokeColor: Color;
-        };
+        [key: string]: Record<string, unknown>;
     };
     readonly defaultStampAnnotationTemplates: StampAnnotation[];
     defaultEditableAnnotationTypes: readonly (typeof CommentMarkerAnnotation)[];
