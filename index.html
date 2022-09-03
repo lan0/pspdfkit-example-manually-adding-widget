@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Example</title>
+</head>
+<body>
+    <div style="width: 100%; display: flex;">
+        <div style="flex: 1">
+            <button onclick="javascript:addField()">add text field</button>
+        </div>
+        <div style="flex: 5">
+            <div id="pspdfkit" style="width: 100%; height: 100vh;"></div>
+        </div>
+    </div>
+    <script src="assets/pspdfkit.js"></script>
+    <script>
+        let pspdfkitInstance;
+        PSPDFKit.load({
+            container: "#pspdfkit",
+            document: "document.pdf"
+        })
+        .then(function(instance) {
+            pspdfkitInstance = instance;
+            instance.setViewState(viewState => viewState.set('formDesignMode', true));
+        })
+        .catch(function(error) {
+            console.error(error.message);
+        });
+        function addField() {
+            // Create a new text form field.
+            const widget = new PSPDFKit.Annotations.WidgetAnnotation({
+            id: PSPDFKit.generateInstantId(),
+            pageIndex: 0,
+            formFieldName: "MyFormField",
+            boundingBox: new PSPDFKit.Geometry.Rect({
+                left: 100,
+                top: 75,
+                width: 200,
+                height: 80
+            })
+            });
+            const formField = new PSPDFKit.FormFields.TextFormField({
+                name: "MyFormField",
+                annotationIds: new PSPDFKit.Immutable.List([widget.id]),
+                value: "Text shown in the form field"
+            });
+
+            pspdfkitInstance.create([widget, formField]);
+        }
+    </script>    
+</body>
+</html>
